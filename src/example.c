@@ -17,7 +17,7 @@
  * `%arr` 支持 `.*` 修饰，表示将每行打印的元素个数。
  * 例如：`%.3arr` 表示将数组内容换行打印，每行 3 个元素。
  */
-static void printf_callback_spec_arr(struct k_printf_buf *printf_buf, const struct k_printf_spec *spec, va_list *args) {
+static void printf_callback_spec_arr(struct k_printf_buf *buf, const struct k_printf_spec *spec, va_list *args) {
 
     /* 第一步，按需消耗变长参数列表中的实参 */
 
@@ -50,29 +50,29 @@ static void printf_callback_spec_arr(struct k_printf_buf *printf_buf, const stru
 
     /* 第二步，向缓冲区输出内容 */
 
-    struct k_printf_buf_fn_tbl *fn_tbl = printf_buf->fn_tbl;
+    struct k_printf_buf_fn_tbl *fn_tbl = buf->fn_tbl;
 
     if (len == 0) {
-        fn_tbl->fn_puts(printf_buf, "[]", 2);
+        fn_tbl->fn_puts(buf, "[]", 2);
         return;
     }
 
     if (len == 1) {
-        fn_tbl->fn_printf(printf_buf, "[ %*d ]", min_width, arr[0]);
+        fn_tbl->fn_printf(buf, "[ %*d ]", min_width, arr[0]);
         return;
     }
 
     int i = 0;
-    fn_tbl->fn_printf(printf_buf, "[ %*d,", min_width, arr[i]);
+    fn_tbl->fn_printf(buf, "[ %*d,", min_width, arr[i]);
     for (;;) {
         i++;
         if (i % line_len == 0)
-            fn_tbl->fn_puts(printf_buf, "\n ", 2);
+            fn_tbl->fn_puts(buf, "\n ", 2);
         if (len - 1 == i)
             break;
-        fn_tbl->fn_printf(printf_buf, " %*d,", min_width, arr[i]);
+        fn_tbl->fn_printf(buf, " %*d,", min_width, arr[i]);
     }
-    fn_tbl->fn_printf(printf_buf, " %*d ]", min_width, arr[i]);
+    fn_tbl->fn_printf(buf, " %*d ]", min_width, arr[i]);
 }
 
 /* 本示例教你如何重载 `k_printf` 的格式说明符 `%c`
@@ -87,7 +87,7 @@ static void printf_callback_spec_arr(struct k_printf_buf *printf_buf, const stru
  * 这里重新定义最小宽度修饰 `*`，改为重复输出的字符个数。
  * 例如：`%5c` 表示重复输出 5 次该字符。
  */
-static void printf_callback_spec_c(struct k_printf_buf *printf_buf, const struct k_printf_spec *spec, va_list *args) {
+static void printf_callback_spec_c(struct k_printf_buf *buf, const struct k_printf_spec *spec, va_list *args) {
 
     /* 第一步，按需消耗变长参数列表中的实参 */
 
@@ -107,30 +107,30 @@ static void printf_callback_spec_c(struct k_printf_buf *printf_buf, const struct
 
     /* 第二步，向缓冲区输出内容 */
 
-    struct k_printf_buf_fn_tbl *fn_tbl = printf_buf->fn_tbl;
+    struct k_printf_buf_fn_tbl *fn_tbl = buf->fn_tbl;
 
     if (repeat == 1) {
-        fn_tbl->fn_puts(printf_buf, &ch, 1);
+        fn_tbl->fn_puts(buf, &ch, 1);
         return;
     }
 
-    char ch_buf[64];
+    char tmp_buf[96];
 
-    if (repeat <= sizeof(ch_buf)) {
-        memset(ch_buf, ch, repeat);
-        fn_tbl->fn_puts(printf_buf, ch_buf, repeat);
+    if (repeat <= sizeof(tmp_buf)) {
+        memset(tmp_buf, ch, repeat);
+        fn_tbl->fn_puts(buf, tmp_buf, repeat);
         return;
     }
 
-    memset(ch_buf, ch, sizeof(ch_buf));
+    memset(tmp_buf, ch, sizeof(tmp_buf));
 
     int putc_num = 0;
-    while (putc_num + sizeof(ch_buf) <= repeat) {
-        fn_tbl->fn_puts(printf_buf, ch_buf, sizeof(ch_buf));
-        putc_num += sizeof(ch_buf);
+    while (putc_num + sizeof(tmp_buf) <= repeat) {
+        fn_tbl->fn_puts(buf, tmp_buf, sizeof(tmp_buf));
+        putc_num += sizeof(tmp_buf);
     }
     if (putc_num < repeat)
-        fn_tbl->fn_puts(printf_buf, ch_buf, repeat - putc_num);
+        fn_tbl->fn_puts(buf, tmp_buf, repeat - putc_num);
 }
 
 /* 本示例教你如何匹配自定义格式说明符：

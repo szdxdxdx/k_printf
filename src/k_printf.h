@@ -44,23 +44,23 @@ struct k_printf_spec;
  * 你要留意 C 在传递变长参数时存在类型提升。例如 `char` 被提升为 `int`，
  * 若要读取一个 `char` 类型实参，应使用 `(char) va_arg(*args, int)`。
  *
- * \param printf_buf 缓冲区，你应使用 `k_printf_buf->fn_tbl` 中提供的函数往缓冲区中写入内容
- * \param spec       当前格式说明符的详细信息
- * \param args       指向变长参数列表的指针，你应按需消耗列表中的实参
+ * \param buf  缓冲区，你应使用 `k_printf_buf->fn_tbl` 中提供的函数往缓冲区中写入内容
+ * \param spec 当前格式说明符的详细信息
+ * \param args 指向变长参数列表的指针，你应按需消耗列表中的实参
  */
-typedef void (*k_printf_callback_fn)(struct k_printf_buf *printf_buf, const struct k_printf_spec *spec, va_list *args);
+typedef void (*k_printf_callback_fn)(struct k_printf_buf *buf, const struct k_printf_spec *spec, va_list *args);
 
 /** \brief 操纵缓冲区的各类接口函数 */
 struct k_printf_buf_fn_tbl {
 
     /** \brief 往缓冲区中写入指定长度的字符串（你要确保字符串在这段范围内的不含 `\0` 字符） */
-    void (* const fn_puts)(struct k_printf_buf *printf_buf, const char *str, size_t len);
+    void (* const fn_puts)(struct k_printf_buf *buf, const char *str, size_t len);
 
     /** \brief 往缓冲区中写入格式化的字符串（格式说明符的标准同 C `printf`） */
-    void (* const fn_printf)(struct k_printf_buf *printf_buf, const char *fmt, ...);
+    void (* const fn_printf)(struct k_printf_buf *buf, const char *fmt, ...);
 
     /** \brief 往缓冲区中写入格式化的字符串（格式说明符的标准同 C `printf`） */
-    void (* const fn_vprintf)(struct k_printf_buf *printf_buf, const char *fmt, va_list args);
+    void (* const fn_vprintf)(struct k_printf_buf *buf, const char *fmt, va_list args);
 };
 
 /** \brief 缓冲区接口，对 `char []` 和 `FILE *` 两类缓冲区统一的操作接口 */

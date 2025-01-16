@@ -29,14 +29,14 @@ struct file_buf {
 };
 
 static void init_str_buf   (struct str_buf *str_buf, char *buf, size_t capacity);
-static void str_buf_puts   (struct k_printf_buf *printf_buf, const char *str, size_t len);
-static void str_buf_printf (struct k_printf_buf *printf_buf, const char *fmt, ...);
-static void str_buf_vprintf(struct k_printf_buf *printf_buf, const char *fmt, va_list args);
+static void str_buf_puts   (struct k_printf_buf *buf, const char *str, size_t len);
+static void str_buf_printf (struct k_printf_buf *buf, const char *fmt, ...);
+static void str_buf_vprintf(struct k_printf_buf *buf, const char *fmt, va_list args);
 
 static void init_file_buf   (struct file_buf *file_buf, FILE *file);
-static void file_buf_puts   (struct k_printf_buf *printf_buf, const char *str, size_t len);
-static void file_buf_printf (struct k_printf_buf *printf_buf, const char *fmt, ...);
-static void file_buf_vprintf(struct k_printf_buf *printf_buf, const char *fmt, va_list args);
+static void file_buf_puts   (struct k_printf_buf *buf, const char *str, size_t len);
+static void file_buf_printf (struct k_printf_buf *buf, const char *fmt, ...);
+static void file_buf_vprintf(struct k_printf_buf *buf, const char *fmt, va_list args);
 
 static void init_str_buf(struct str_buf *str_buf, char *buf, size_t capacity) {
 
@@ -63,11 +63,11 @@ static void init_str_buf(struct str_buf *str_buf, char *buf, size_t capacity) {
     str_buf->buffer[0] = '\0';
 }
 
-static void str_buf_puts(struct k_printf_buf *printf_buf, const char *str, size_t len) {
-    if (-1 == printf_buf->n)
+static void str_buf_puts(struct k_printf_buf *buf, const char *str, size_t len) {
+    if (-1 == buf->n)
         return;
 
-    struct str_buf *str_buf = (struct str_buf *)printf_buf;
+    struct str_buf *str_buf = (struct str_buf *)buf;
 
     int remain_capacity = str_buf->max_len - str_buf->str_len;
 
@@ -76,7 +76,7 @@ static void str_buf_puts(struct k_printf_buf *printf_buf, const char *str, size_
         str_buf->str_len += (int)len;
         str_buf->buffer[str_buf->str_len] = '\0';
 
-        printf_buf->n += (int)len;
+        buf->n += (int)len;
         return;
     }
 
@@ -88,43 +88,43 @@ static void str_buf_puts(struct k_printf_buf *printf_buf, const char *str, size_
     str_buf->buffer[str_buf->str_len] = '\0';
 
     if (len <= INT_MAX) {
-        printf_buf->n += (int)len;
-        if (printf_buf->n < 0)
-            printf_buf->n = -1;
+        buf->n += (int)len;
+        if (buf->n < 0)
+            buf->n = -1;
     } else {
-        printf_buf->n = -1;
+        buf->n = -1;
     }
 }
 
-static void str_buf_printf(struct k_printf_buf *printf_buf, const char *fmt, ...) {
+static void str_buf_printf(struct k_printf_buf *buf, const char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
-    str_buf_vprintf(printf_buf, fmt, args);
+    str_buf_vprintf(buf, fmt, args);
     va_end(args);
 }
 
-static void str_buf_vprintf(struct k_printf_buf *printf_buf, const char *fmt, va_list args) {
-    if (-1 == printf_buf->n)
+static void str_buf_vprintf(struct k_printf_buf *buf, const char *fmt, va_list args) {
+    if (-1 == buf->n)
         return;
 
-    struct str_buf *str_buf = (struct str_buf *)printf_buf;
+    struct str_buf *str_buf = (struct str_buf *)buf;
 
     int remain_len = str_buf->max_len - str_buf->str_len;
     int r = vsnprintf(&str_buf->buffer[str_buf->str_len], remain_len + 1, fmt, args);
     if (r < 0) {
-        printf_buf->n = -1;
+        buf->n = -1;
         return;
     }
 
     if (r <= remain_len) {
         str_buf->str_len += r;
-        printf_buf->n += r;
+        buf->n += r;
     }
     else {
         str_buf->str_len = str_buf->max_len;
-        printf_buf->n += r;
-        if (printf_buf->n < 0)
-            printf_buf->n = -1;
+        buf->n += r;
+        if (buf->n < 0)
+            buf->n = -1;
     }
 }
 
@@ -141,45 +141,45 @@ static void init_file_buf(struct file_buf *file_buf, FILE *file) {
     file_buf->file        = file;
 }
 
-static void file_buf_puts(struct k_printf_buf *printf_buf, const char *str, size_t len) {
-    if (-1 == printf_buf->n)
+static void file_buf_puts(struct k_printf_buf *buf, const char *str, size_t len) {
+    if (-1 == buf->n)
         return;
 
-    struct file_buf *file_buf = (struct file_buf *)printf_buf;
+    struct file_buf *file_buf = (struct file_buf *)buf;
 
     size_t r = fwrite(str, sizeof(char), len, file_buf->file);
     if (INT_MAX < r) {
-        printf_buf->n = -1;
+        buf->n = -1;
         return;
     }
 
-    printf_buf->n += (int)r;
-    if (printf_buf->n < 0)
-        printf_buf->n = -1;
+    buf->n += (int)r;
+    if (buf->n < 0)
+        buf->n = -1;
 }
 
-static void file_buf_printf(struct k_printf_buf *printf_buf, const char *fmt, ...) {
+static void file_buf_printf(struct k_printf_buf *buf, const char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
-    file_buf_vprintf(printf_buf, fmt, args);
+    file_buf_vprintf(buf, fmt, args);
     va_end(args);
 }
 
-static void file_buf_vprintf(struct k_printf_buf *printf_buf, const char *fmt, va_list args) {
-    if (-1 == printf_buf->n)
+static void file_buf_vprintf(struct k_printf_buf *buf, const char *fmt, va_list args) {
+    if (-1 == buf->n)
         return;
 
-    struct file_buf *file_buf = (struct file_buf *)printf_buf;
+    struct file_buf *file_buf = (struct file_buf *)buf;
 
     int r = vfprintf(file_buf->file, fmt, args);
     if (r < 0) {
-        printf_buf->n = -1;
+        buf->n = -1;
         return;
     }
 
-    printf_buf->n += r;
-    if (printf_buf->n < 0)
-        printf_buf->n = -1;
+    buf->n += r;
+    if (buf->n < 0)
+        buf->n = -1;
 }
 
 /* endregion */
@@ -191,12 +191,12 @@ static void file_buf_vprintf(struct k_printf_buf *printf_buf, const char *fmt, v
  * 此函数专门处理 `%n` 一族的格式说明符。
  * 函数假定传入的格式说明符类型是正确的。
  */
-static void printf_callback_c_std_spec_n(struct k_printf_buf *printf_buf, const struct k_printf_spec *spec, va_list *args) {
+static void printf_callback_c_std_spec_n(struct k_printf_buf *buf, const struct k_printf_spec *spec, va_list *args) {
 
     const char c1 = spec->type[0];
     const char c2 = spec->type[1];
 
-    int n = printf_buf->n;
+    int n = buf->n;
 
     if (c1=='n') {
         *(va_arg(*args, int *)) = (int)n; /* %n */
@@ -226,7 +226,7 @@ static void printf_callback_c_std_spec_n(struct k_printf_buf *printf_buf, const 
  * 此函数处理 C `printf` 的格式说明符（除了 `%n` 一族）。
  * 函数假定传入的格式说明符类型是正确的。
  */
-static void printf_callback_c_std_spec(struct k_printf_buf *printf_buf, const struct k_printf_spec *spec, va_list *args) {
+static void printf_callback_c_std_spec(struct k_printf_buf *buf, const struct k_printf_spec *spec, va_list *args) {
 
     /* 将格式说明符交回给 C `printf` 处理，之后按需消耗掉变长参数列表的实参 */
 
@@ -236,7 +236,7 @@ static void printf_callback_c_std_spec(struct k_printf_buf *printf_buf, const st
     int len = (int)(spec->end - spec->start);
     if (sizeof(fmt_buf) < len + 1) {
         if (NULL == (fmt = malloc(len + 1))) {
-            printf_buf->n = -1;
+            buf->n = -1;
             return;
         }
     }
@@ -246,7 +246,7 @@ static void printf_callback_c_std_spec(struct k_printf_buf *printf_buf, const st
 
     va_list args_copy;
     va_copy(args_copy, *args);
-    printf_buf->fn_tbl->fn_vprintf(printf_buf, fmt, args_copy);
+    buf->fn_tbl->fn_vprintf(buf, fmt, args_copy);
     va_end(args_copy);
 
     if (fmt != fmt_buf)

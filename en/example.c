@@ -18,7 +18,7 @@
  * The `%arr` specifier also supports the `.*` modifier, which specifies the number of elements per line when printing the array.
  * For example: `%.3arr` means that the array content will be printed with 3 elements per line.
  */
-static void printf_callback_spec_arr(struct k_printf_buf *printf_buf, const struct k_printf_spec *spec, va_list *args) {
+static void printf_callback_spec_arr(struct k_printf_buf *buf, const struct k_printf_spec *spec, va_list *args) {
 
     /* Step 1: Consume the arguments from the variable argument list as needed. */
 
@@ -51,29 +51,29 @@ static void printf_callback_spec_arr(struct k_printf_buf *printf_buf, const stru
 
     /* Step 2: Output content to the buffer. */
 
-    struct k_printf_buf_fn_tbl *fn_tbl = printf_buf->fn_tbl;
+    struct k_printf_buf_fn_tbl *fn_tbl = buf->fn_tbl;
 
     if (len == 0) {
-        fn_tbl->fn_puts(printf_buf, "[]", 2);
+        fn_tbl->fn_puts(buf, "[]", 2);
         return;
     }
 
     if (len == 1) {
-        fn_tbl->fn_printf(printf_buf, "[ %*d ]", min_width, arr[0]);
+        fn_tbl->fn_printf(buf, "[ %*d ]", min_width, arr[0]);
         return;
     }
 
     int i = 0;
-    fn_tbl->fn_printf(printf_buf, "[ %*d,", min_width, arr[i]);
+    fn_tbl->fn_printf(buf, "[ %*d,", min_width, arr[i]);
     for (;;) {
         i++;
         if (i % line_len == 0)
-            fn_tbl->fn_puts(printf_buf, "\n ", 2);
+            fn_tbl->fn_puts(buf, "\n ", 2);
         if (len - 1 == i)
             break;
-        fn_tbl->fn_printf(printf_buf, " %*d,", min_width, arr[i]);
+        fn_tbl->fn_printf(buf, " %*d,", min_width, arr[i]);
     }
-    fn_tbl->fn_printf(printf_buf, " %*d ]", min_width, arr[i]);
+    fn_tbl->fn_printf(buf, " %*d ]", min_width, arr[i]);
 }
 
 /* This example demonstrates how to overload the `k_printf` format specifier `%c`.
@@ -89,7 +89,7 @@ static void printf_callback_spec_arr(struct k_printf_buf *printf_buf, const stru
  * Here, we redefine the minimum width modifier `*`, changing it to repeat the output character multiple times.
  * For example: `%5c` means repeating the character 5 times.
  */
-static void printf_callback_spec_c(struct k_printf_buf *printf_buf, const struct k_printf_spec *spec, va_list *args) {
+static void printf_callback_spec_c(struct k_printf_buf *buf, const struct k_printf_spec *spec, va_list *args) {
 
     /* Step 1: Consume the arguments from the variable argument list as needed. */
 
@@ -109,30 +109,30 @@ static void printf_callback_spec_c(struct k_printf_buf *printf_buf, const struct
 
     /* Step 2: Output content to the buffer. */
 
-    struct k_printf_buf_fn_tbl *fn_tbl = printf_buf->fn_tbl;
+    struct k_printf_buf_fn_tbl *fn_tbl = buf->fn_tbl;
 
     if (repeat == 1) {
-        fn_tbl->fn_puts(printf_buf, &ch, 1);
+        fn_tbl->fn_puts(buf, &ch, 1);
         return;
     }
 
-    char ch_buf[64];
+    char tmp_buf[96];
 
-    if (repeat <= sizeof(ch_buf)) {
-        memset(ch_buf, ch, repeat);
-        fn_tbl->fn_puts(printf_buf, ch_buf, repeat);
+    if (repeat <= sizeof(tmp_buf)) {
+        memset(tmp_buf, ch, repeat);
+        fn_tbl->fn_puts(buf, tmp_buf, repeat);
         return;
     }
 
-    memset(ch_buf, ch, sizeof(ch_buf));
+    memset(tmp_buf, ch, sizeof(tmp_buf));
 
     int putc_num = 0;
-    while (putc_num + sizeof(ch_buf) <= repeat) {
-        fn_tbl->fn_puts(printf_buf, ch_buf, sizeof(ch_buf));
-        putc_num += sizeof(ch_buf);
+    while (putc_num + sizeof(tmp_buf) <= repeat) {
+        fn_tbl->fn_puts(buf, tmp_buf, sizeof(tmp_buf));
+        putc_num += sizeof(tmp_buf);
     }
     if (putc_num < repeat)
-        fn_tbl->fn_puts(printf_buf, ch_buf, repeat - putc_num);
+        fn_tbl->fn_puts(buf, tmp_buf, repeat - putc_num);
 }
 
 /* This example demonstrates how to match custom format specifiers:
