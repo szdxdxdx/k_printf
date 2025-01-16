@@ -151,7 +151,7 @@ struct k_printf_spec {
      */
     int precision;
 
-    /** \brief 指向原格式字符串中该格式说明符 `%` 符号的起始位置 */
+    /** \brief 指向原格式字符串中该格式说明符 `%` 符号的位置 */
     const char *start;
 
     /** \brief 指向原格式字符串中该格式说明符的类型部分的起始位置 */

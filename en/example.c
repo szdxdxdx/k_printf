@@ -6,20 +6,21 @@
 
 #include "k_printf.h"
 
-/* 本示例教你如何自定义 `k_printf` 的格式说明符 `%arr`，用于打印整型的数组
+/* Example demonstrating how to customize the `k_printf` format specifier `%arr` to print an array of integers.
  *
- * 在 C 中，传递数组往往要伴随传递数组长度，所以 `k_printf` 遇到 `%arr` 时应读入两个实参，
- * 分别整型数组的指针和数组长度。这里假定数组长度不超过 int 上限。
+ * In C, arrays are often passed with their length, so when `k_printf` encounters `%arr`,
+ * it should read two arguments: the pointer to the array and the length of the array.
+ * It is assumed that the array length does not exceed the maximum value for an `int`.
  *
- * `%arr` 支持 `*` 修饰，表示输出数组元素的最小宽度
- * 例如：`%5arr` 表示打印时每个数字的最小宽度为 5。
+ * The `%arr` specifier supports the `*` modifier, which specifies the minimum width for each array element when printed.
+ * For example: `%5arr` means that each number will be printed with a minimum width of 5 characters.
  *
- * `%arr` 支持 `.*` 修饰，表示将每行打印的元素个数。
- * 例如：`%.3arr` 表示将数组内容换行打印，每行 3 个元素。
+ * The `%arr` specifier also supports the `.*` modifier, which specifies the number of elements per line when printing the array.
+ * For example: `%.3arr` means that the array content will be printed with 3 elements per line.
  */
 static void printf_callback_spec_arr(struct k_printf_buf *printf_buf, const struct k_printf_spec *spec, va_list *args) {
 
-    /* 第一步，按需消耗变长参数列表中的实参 */
+    /* Step 1: Consume the arguments from the variable argument list as needed. */
 
     int min_width = 0;
     if (spec->use_min_width) {
@@ -48,7 +49,7 @@ static void printf_callback_spec_arr(struct k_printf_buf *printf_buf, const stru
     int *arr = va_arg(*args, int *);
     int  len = va_arg(*args, int);
 
-    /* 第二步，向缓冲区输出内容 */
+    /* Step 2: Output content to the buffer. */
 
     struct k_printf_buf_fn_tbl *fn_tbl = printf_buf->fn_tbl;
 
@@ -75,21 +76,22 @@ static void printf_callback_spec_arr(struct k_printf_buf *printf_buf, const stru
     fn_tbl->fn_printf(printf_buf, " %*d ]", min_width, arr[i]);
 }
 
-/* 本示例教你如何重载 `k_printf` 的格式说明符 `%c`
+/* This example demonstrates how to overload the `k_printf` format specifier `%c`.
  *
- * `k_printf` 默认的 `%c` 同 C `printf` 一样，用于打印一个字符。
+ * By default, `k_printf`'s `%c` works like C `printf`, used to print a single character.
  *
- * 本示例要重载 `%c`，仍用于打印一个字符。
+ * In this example, we will overload `%c` to still print a single character.
  *
- * 重载默认格式说明符会失去所有修饰符的默认行为，不再支持左右对齐、零填充、精度等。
- * 若需要，你得自己实现它们。
+ * Overloading the default format specifier will lose all the default behaviors of the modifiers,
+ * such as left/right alignment, zero padding, precision, etc.
+ * If needed, you must implement these behaviors yourself.
  *
- * 这里重新定义最小宽度修饰 `*`，改为重复输出的字符个数。
- * 例如：`%5c` 表示重复输出 5 次该字符。
+ * Here, we redefine the minimum width modifier `*`, changing it to repeat the output character multiple times.
+ * For example: `%5c` means repeating the character 5 times.
  */
 static void printf_callback_spec_c(struct k_printf_buf *printf_buf, const struct k_printf_spec *spec, va_list *args) {
 
-    /* 第一步，按需消耗变长参数列表中的实参 */
+    /* Step 1: Consume the arguments from the variable argument list as needed. */
 
     int repeat = 1;
     if (spec->use_min_width) {
@@ -105,7 +107,7 @@ static void printf_callback_spec_c(struct k_printf_buf *printf_buf, const struct
 
     char ch = (char)va_arg(*args, int);
 
-    /* 第二步，向缓冲区输出内容 */
+    /* Step 2: Output content to the buffer. */
 
     struct k_printf_buf_fn_tbl *fn_tbl = printf_buf->fn_tbl;
 
@@ -133,28 +135,30 @@ static void printf_callback_spec_c(struct k_printf_buf *printf_buf, const struct
         fn_tbl->fn_puts(printf_buf, ch_buf, repeat - putc_num);
 }
 
-/* 本示例教你如何匹配自定义格式说明符：
- * 如果你的格式说明符非常多，你可以通过 if-else 与 switch-case 手动哈希，提高识别效率。
+/* This example demonstrates how to match custom format specifiers:
+ * If you have many format specifiers, you can manually hash
+ * using if-else or switch-case to improve matching efficiency.
  */
 static k_printf_callback_fn match_my_spec_1(const char **str) {
 
     const char *s = *str;
 
     if (s[0] == 'c') {
-        /* 若匹配成功，则移动字符串指针，并返回对应的回调 */
+         /* If matched, move the string pointer and return the corresponding callback */
         *str += 1;
         return printf_callback_spec_c;
     } else if (s[0] == 'a' && s[1] == 'r' && s[2] == 'r') {
         *str += 3;
         return printf_callback_spec_arr;
     } else {
-        /* 若匹配失败则返回 NULL，不要移动字符串指针 */
+        /* If matching fails, return NULL and do not move the string pointer */
         return NULL;
     }
 }
 
-/* 本示例教你如何匹配自定义格式说明符：
- * 若你的格式说明符比较少，或你想图方便，你可以使用 `k_printf_match_spec_helper`。
+/* This example demonstrates how to match custom format specifiers:
+ * If you have fewer format specifiers, or you want a simpler solution,
+ * you can use `k_printf_match_spec_helper`.
  */
 static k_printf_callback_fn match_my_spec_2(const char **str) {
 
@@ -167,45 +171,49 @@ static k_printf_callback_fn match_my_spec_2(const char **str) {
     return k_printf_match_spec_helper(tuples, str);
 }
 
-static void example_1(void) {
+static struct k_printf_config config = {
+    .fn_match_spec = match_my_spec_1, /* <- Or you can use `match_my_spec_2` */
+};
 
-    static struct k_printf_config config = {
-        .fn_match_spec = match_my_spec_1, /* 或者 match_my_spec_2 */
-    };
+/* ------------------------------------------------------------------------ */
+
+static void example_1(void) {
 
     int arr[] = {  1,  2,  3,  4,  5,
                    6,  7,  8,  9, 10,
                   11, 12, 13, 14, 15,
                   16, 17, 18, 19, 20 };
 
-    /* 使用 `k_printf` */
+    /* Using `k_printf` */
     {
-        /* 本次输出使用默认配置，只支持 C `printf` 格式说明符
-         *  %a` 以十六进制指数记法打印浮点数
-         * `%4c` 打印一个字符，但是占 4 个字符宽度
+        /* This output uses the default configuration,
+         * which only supports C `printf` format specifiers.
+         * `%a` prints a floating-point number in hexadecimal scientific notation.
+         * `%4c` prints a character but occupies 4 character widths.
          */
         k_printf(NULL, "%arr, %d, %4c\n\n", 0xcp-1076, 5, 'b');
 
         int n;
 
-        /* 本次输出使用指定配置，重载 `%c` 用于重复打印字符
-         * 依然支持 C `printf` 的格式说明符
+        /* This output uses the specified configuration,
+         * with the `%c` specifier overloaded to repeat the character.
+         * It still supports C `printf` format specifiers.
          */
         k_printf(&config, "%s, %c,%n %4c, %*c\n\n", "hello", 'a', &n, 'b', 3, 'c');
-        k_printf(&config, "%s, %d, %5.2f, %5lld\n\n", "hello", n, 12345, 3.14, (long long)123);
+        k_printf(&config, "%s, %d, %5.2f, %5lld\n\n", "hello", n, 3.14, (long long)123);
     }
 
-    /* 使用 `k_fprintf` */
+    /* Using `k_fprintf` */
     {
-        /* 使用自定义格式说明符 `%arr`，打印数组的前 8 个元素 */
+        /* Using the custom format specifier `%arr`, print the first 8 elements of the array. */
         k_fprintf(&config, stdout, "%arr\n\n", arr, 8);
     }
 
-    /* 使用 `k_asprintf` */
+    /* Using `k_asprintf` */
     {
         char *get_s;
 
-        /* 打印数组的前 20 个元素，每行打印 7 个元素 */
+        /* Print the first 20 elements of the array, with 7 elements printed per line. */
         k_asprintf(&config, &get_s, "%.7arr\n", arr, 20);
         if (NULL != get_s) {
             puts(get_s);
@@ -213,21 +221,24 @@ static void example_1(void) {
         }
     }
 
-    /* 使用 `k_sprintf` */
+    /* Using `k_sprintf` */
     {
         char buf[96];
 
-        /* 打印数组的前 13 个元素，每行打印 5 个元素，每个元素最少占 2 个字符宽度 */
+        /* Print the first 13 elements of the array, with 5 elements printed per line.
+         * Each element should occupy at least 2 character widths.
+         */
         k_sprintf(&config, buf, "%2.5arr\n", arr, 13);
         puts(buf);
     }
 
-    /* 使用 `k_snprintf` */
+    /* Using `k_snprintf` */
     {
         char buf[96];
 
-        /* 指定缓冲区大小为 96，超出部分会被截断。
-         * 打印数组的前 20 个元素，每行打印 5 个元素，每个元素最少占 3 个字符宽度
+        /* Set the buffer size to 96; any content exceeding this will be truncated.
+         * Print the first 20 elements of the array, with 5 elements printed per line.
+         * Each element should occupy at least 3 character widths.
          */
         k_snprintf(&config, buf, 96, "%*.*arr\n", 3, 5, arr, 20);
         puts(buf);
