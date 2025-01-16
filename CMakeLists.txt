@@ -3,7 +3,7 @@ project(k_printf C)
 
 set(CMAKE_C_STANDARD 99)
 
-file(GLOB_RECURSE SRC_FILES "${CMAKE_SOURCE_DIR}/en/*.c" )
+file(GLOB_RECURSE SRC_FILES "${CMAKE_SOURCE_DIR}/src/*.c" )
 
 add_executable(k_printf ${SRC_FILES})
 
