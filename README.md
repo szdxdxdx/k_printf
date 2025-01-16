@@ -4,7 +4,7 @@
 
 ## 中文文档 Chinese document
 
-k_printf 仅仅是对 C 标准库中的 printf 的包装，允许自定义占位符和对应回调。
+k_printf 是对 C 标准库中的 printf 的包装，允许自定义格式说明符和对应回调。
 
 示例：
 ```C
@@ -33,7 +33,7 @@ k_printf(config, "%s %arr", "arr[] =", arr, 5);
 ## 英文文档 English document
 
 `k_printf` is a wrapper around the C standard library's `printf`,
-allowing custom placeholders and corresponding callback functions.
+allowing custom format specifier and corresponding callback functions.
 
 Example:
 ```C
