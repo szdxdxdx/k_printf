@@ -84,25 +84,25 @@ struct k_printf_buf {
 struct k_printf_spec {
 
     /** \brief `-` 左对齐 */
-    int left_justified : 1;
+    unsigned int left_justified : 1;
 
     /** \brief `+` 始终显示符号 */
-    int sign_prepended : 1;
+    unsigned int sign_prepended : 1;
 
     /** \brief ` ` 空格填充 */
-    int space_padded : 1;
+    unsigned int space_padded : 1;
 
     /** \brief `0` 零填充 */
-    int zero_padding : 1;
+    unsigned int zero_padding : 1;
 
     /** \brief `#` 特殊格式修饰 */
-    int alternative_form : 1;
+    unsigned int alternative_form : 1;
 
     /** \brief `*` 使用最小宽度 */
-    int use_min_width : 1;
+    unsigned int use_min_width : 1;
 
     /** \brief `.*` 使用精度 */
-    int use_precision : 1;
+    unsigned int use_precision : 1;
 
     /**
      * \brief 最小宽度

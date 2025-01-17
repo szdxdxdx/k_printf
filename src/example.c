@@ -24,7 +24,7 @@ static void printf_callback_spec_arr(struct k_printf_buf *buf, const struct k_pr
     int min_width = 0;
     if (spec->use_min_width) {
 
-        if (spec->min_width < 0) {
+        if (spec->min_width == -1) {
             min_width = va_arg(*args, int);
             if (min_width < 0)
                 min_width = 0;
@@ -36,7 +36,7 @@ static void printf_callback_spec_arr(struct k_printf_buf *buf, const struct k_pr
     int line_len = INT_MAX;
     if (spec->use_precision) {
 
-        if (spec->precision < 0) {
+        if (spec->precision == -1) {
             line_len = va_arg(*args, int);
             if (line_len <= 0)
                 line_len = INT_MAX;
@@ -92,7 +92,7 @@ static void printf_callback_spec_c(struct k_printf_buf *buf, const struct k_prin
     int repeat = 1;
     if (spec->use_min_width) {
 
-        if (spec->min_width < 1) {
+        if (spec->min_width == -1) {
             repeat = va_arg(*args, int);
             if (repeat < 0)
                 repeat = 1;

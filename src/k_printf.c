@@ -483,21 +483,21 @@ static k_printf_callback_fn extract_spec(const struct k_printf_config *config, c
     spec.alternative_form = 0;
     for (;;) {
         switch (*ch) {
-            case '-': ch++; spec.left_justified   = ~0; continue;
-            case '+': ch++; spec.sign_prepended   = ~0; continue;
-            case ' ': ch++; spec.space_padded     = ~0; continue;
-            case '0': ch++; spec.zero_padding     = ~0; continue;
-            case '#': ch++; spec.alternative_form = ~0; continue;
+            case '-': ch++; spec.left_justified   = 1; continue;
+            case '+': ch++; spec.sign_prepended   = 1; continue;
+            case ' ': ch++; spec.space_padded     = 1; continue;
+            case '0': ch++; spec.zero_padding     = 1; continue;
+            case '#': ch++; spec.alternative_form = 1; continue;
         }
         break;
     }
 
     if ('1' <= *ch && *ch <= '9') {
-        spec.use_min_width = ~0;
+        spec.use_min_width = 1;
         spec.min_width     = extract_non_negative_int(&ch);
     } else if ('*' == *ch) {
         ch++;
-        spec.use_min_width = ~0;
+        spec.use_min_width = 1;
         spec.min_width     = -1;
     } else {
         spec.use_min_width = 0;
@@ -507,11 +507,11 @@ static k_printf_callback_fn extract_spec(const struct k_printf_config *config, c
     if ('.' == *ch) {
         ch++;
         if ('0' <= *ch && *ch <= '9') {
-            spec.use_precision = ~0;
+            spec.use_precision = 1;
             spec.precision     = extract_non_negative_int(&ch);
         } else if ('*' == *ch) {
             ch++;
-            spec.use_precision = ~0;
+            spec.use_precision = 1;
             spec.precision     = -1;
         } else {
             return NULL;

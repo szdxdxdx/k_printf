@@ -78,25 +78,25 @@ struct k_printf_buf {
 struct k_printf_spec {
 
     /** \brief `-` Left-justified */
-    int left_justified : 1;
+    unsigned int left_justified : 1;
 
     /** \brief `+` Always show sign */
-    int sign_prepended : 1;
+    unsigned int sign_prepended : 1;
 
     /** \brief ` ` Space-padded */
-    int space_padded : 1;
+    unsigned int space_padded : 1;
 
     /** \brief `0` Zero-padded */
-    int zero_padding : 1;
+    unsigned int zero_padding : 1;
 
     /** \brief `#` Alternative format */
-    int alternative_form : 1;
+    unsigned int alternative_form : 1;
 
     /** \brief `*` Use minimum width */
-    int use_min_width : 1;
+    unsigned int use_min_width : 1;
 
     /** \brief `.*` Use precision */
-    int use_precision : 1;
+    unsigned int use_precision : 1;
 
     /**
      * \brief Minimum width
