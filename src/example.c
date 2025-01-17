@@ -50,29 +50,27 @@ static void printf_callback_spec_arr(struct k_printf_buf *buf, const struct k_pr
 
     /* 第二步，向缓冲区输出内容 */
 
-    struct k_printf_buf_fn_tbl *fn_tbl = buf->fn_tbl;
-
     if (len == 0) {
-        fn_tbl->fn_puts(buf, "[]", 2);
+        buf->fn_puts(buf, "[]", 2);
         return;
     }
 
     if (len == 1) {
-        fn_tbl->fn_printf(buf, "[ %*d ]", min_width, arr[0]);
+        buf->fn_printf(buf, "[ %*d ]", min_width, arr[0]);
         return;
     }
 
     int i = 0;
-    fn_tbl->fn_printf(buf, "[ %*d,", min_width, arr[i]);
+    buf->fn_printf(buf, "[ %*d,", min_width, arr[i]);
     for (;;) {
         i++;
         if (i % line_len == 0)
-            fn_tbl->fn_puts(buf, "\n ", 2);
+            buf->fn_puts(buf, "\n ", 2);
         if (len - 1 == i)
             break;
-        fn_tbl->fn_printf(buf, " %*d,", min_width, arr[i]);
+        buf->fn_printf(buf, " %*d,", min_width, arr[i]);
     }
-    fn_tbl->fn_printf(buf, " %*d ]", min_width, arr[i]);
+    buf->fn_printf(buf, " %*d ]", min_width, arr[i]);
 }
 
 /* 本示例教你如何重载 `k_printf` 的格式说明符 `%c`
@@ -107,30 +105,28 @@ static void printf_callback_spec_c(struct k_printf_buf *buf, const struct k_prin
 
     /* 第二步，向缓冲区输出内容 */
 
-    struct k_printf_buf_fn_tbl *fn_tbl = buf->fn_tbl;
-
     if (repeat == 1) {
-        fn_tbl->fn_puts(buf, &ch, 1);
+        buf->fn_puts(buf, &ch, 1);
         return;
     }
 
-    char tmp_buf[96];
+    char ch_buf[64];
 
-    if (repeat <= sizeof(tmp_buf)) {
-        memset(tmp_buf, ch, repeat);
-        fn_tbl->fn_puts(buf, tmp_buf, repeat);
+    if (repeat <= sizeof(ch_buf)) {
+        memset(ch_buf, ch, repeat);
+        buf->fn_puts(buf, ch_buf, repeat);
         return;
     }
 
-    memset(tmp_buf, ch, sizeof(tmp_buf));
+    memset(ch_buf, ch, sizeof(ch_buf));
 
     int putc_num = 0;
-    while (putc_num + sizeof(tmp_buf) <= repeat) {
-        fn_tbl->fn_puts(buf, tmp_buf, sizeof(tmp_buf));
-        putc_num += sizeof(tmp_buf);
+    while (putc_num + sizeof(ch_buf) <= repeat) {
+        buf->fn_puts(buf, ch_buf, sizeof(ch_buf));
+        putc_num += sizeof(ch_buf);
     }
     if (putc_num < repeat)
-        fn_tbl->fn_puts(buf, tmp_buf, repeat - putc_num);
+        buf->fn_puts(buf, ch_buf, repeat - putc_num);
 }
 
 /* 本示例教你如何匹配自定义格式说明符：
@@ -167,14 +163,11 @@ static k_printf_callback_fn match_my_spec_2(const char **str) {
     return k_printf_match_spec_helper(tuples, str);
 }
 
-static struct k_printf_config config = {
-    .fn_match_spec = match_my_spec_1, /* 或者 match_my_spec_2 */
-};
-
-/* ------------------------------------------------------------------------ */
-
 static void example_1(void) {
 
+    static struct k_printf_config config = {
+        .fn_match_spec = match_my_spec_1, /* 或者 match_my_spec_2 */
+    };
 
     int arr[] = {  1,  2,  3,  4,  5,
                    6,  7,  8,  9, 10,

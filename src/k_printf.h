@@ -50,24 +50,17 @@ struct k_printf_spec;
  */
 typedef void (*k_printf_callback_fn)(struct k_printf_buf *buf, const struct k_printf_spec *spec, va_list *args);
 
-/** \brief 操纵缓冲区的各类接口函数 */
-struct k_printf_buf_fn_tbl {
-
-    /** \brief 往缓冲区中写入指定长度的字符串（你要确保字符串在这段范围内的不含 `\0` 字符） */
-    void (* const fn_puts)(struct k_printf_buf *buf, const char *str, size_t len);
-
-    /** \brief 往缓冲区中写入格式化的字符串（格式说明符的标准同 C `printf`） */
-    void (* const fn_printf)(struct k_printf_buf *buf, const char *fmt, ...);
-
-    /** \brief 往缓冲区中写入格式化的字符串（格式说明符的标准同 C `printf`） */
-    void (* const fn_vprintf)(struct k_printf_buf *buf, const char *fmt, va_list args);
-};
-
 /** \brief 缓冲区接口，对 `char []` 和 `FILE *` 两类缓冲区统一的操作接口 */
 struct k_printf_buf {
 
-    /** \brief 操纵缓冲区的各类函数 */
-    struct k_printf_buf_fn_tbl *fn_tbl;
+    /** \brief 往缓冲区中写入指定长度的字符串（你要确保字符串在这段范围内的不含 `\0` 字符） */
+    void (* fn_puts)(struct k_printf_buf *buf, const char *str, size_t len);
+
+    /** \brief 往缓冲区中写入格式化的字符串（格式说明符的标准同 C `printf`） */
+    void (* fn_printf)(struct k_printf_buf *buf, const char *fmt, ...);
+
+    /** \brief 往缓冲区中写入格式化的字符串（格式说明符的标准同 C `printf`） */
+    void (* fn_vprintf)(struct k_printf_buf *buf, const char *fmt, va_list args);
 
     /**
      * \brief 到目前为止已经打印出的字符数量（忽略缓冲区实际大小）

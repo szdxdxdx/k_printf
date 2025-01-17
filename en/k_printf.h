@@ -24,7 +24,7 @@ struct k_printf_spec;
 /**
  * \brief Callback function for custom format specifiers.
  *
- * In the callback, use `k_printf_buf->fn_tbl` functions to write content to the buffer.
+ * In the callback, use functions from `k_printf_buf` to write content to the buffer.
  * The buffer type (either `char []` or `FILE *`) is abstracted.
  *
  * `spec` provides details on the current format specifier.
@@ -36,30 +36,23 @@ struct k_printf_spec;
  * Use `va_arg(*args, type)` to retrieve arguments,
  * keeping in mind type promotions (e.g., `char` to `int`).
  *
- * \param buf  Buffer to write content, use functions from `k_printf_buf->fn_tbl`.
+ * \param buf  Buffer to write content, use functions from `k_printf_buf`.
  * \param spec Details of the current format specifier.
  * \param args Pointer to the variable argument list, consume arguments as needed.
  */
 typedef void (*k_printf_callback_fn)(struct k_printf_buf *buf, const struct k_printf_spec *spec, va_list *args);
 
-/** \brief Functions for manipulating the buffer */
-struct k_printf_buf_fn_tbl {
-
-    /** \brief Writes a string of specified length to the buffer */
-    void (* const fn_puts)(struct k_printf_buf *buf, const char *str, size_t len);
-
-    /** \brief Writes a formatted string to the buffer (C `printf` format specifiers). */
-    void (* const fn_printf)(struct k_printf_buf *buf, const char *fmt, ...);
-
-    /** \brief Writes a formatted string to the buffer (C `printf` format specifiers). */
-    void (* const fn_vprintf)(struct k_printf_buf *buf, const char *fmt, va_list args);
-};
-
 /** \brief Unified interface for buffer operations, supporting both `char []` and `FILE *` types */
 struct k_printf_buf {
 
-    /** \brief Functions for manipulating the buffer */
-    struct k_printf_buf_fn_tbl *fn_tbl;
+    /** \brief Writes a string of specified length to the buffer */
+    void (*fn_puts)(struct k_printf_buf *buf, const char *str, size_t len);
+
+    /** \brief Writes a formatted string to the buffer (C `printf` format specifiers). */
+    void (*fn_printf)(struct k_printf_buf *buf, const char *fmt, ...);
+
+    /** \brief Writes a formatted string to the buffer (C `printf` format specifiers). */
+    void (*fn_vprintf)(struct k_printf_buf *buf, const char *fmt, va_list args);
 
     /**
      * \brief Number of characters printed so far (ignores the actual buffer size).

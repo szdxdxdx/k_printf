@@ -51,29 +51,27 @@ static void printf_callback_spec_arr(struct k_printf_buf *buf, const struct k_pr
 
     /* Step 2: Output content to the buffer. */
 
-    struct k_printf_buf_fn_tbl *fn_tbl = buf->fn_tbl;
-
     if (len == 0) {
-        fn_tbl->fn_puts(buf, "[]", 2);
+        buf->fn_puts(buf, "[]", 2);
         return;
     }
 
     if (len == 1) {
-        fn_tbl->fn_printf(buf, "[ %*d ]", min_width, arr[0]);
+        buf->fn_printf(buf, "[ %*d ]", min_width, arr[0]);
         return;
     }
 
     int i = 0;
-    fn_tbl->fn_printf(buf, "[ %*d,", min_width, arr[i]);
+    buf->fn_printf(buf, "[ %*d,", min_width, arr[i]);
     for (;;) {
         i++;
         if (i % line_len == 0)
-            fn_tbl->fn_puts(buf, "\n ", 2);
+            buf->fn_puts(buf, "\n ", 2);
         if (len - 1 == i)
             break;
-        fn_tbl->fn_printf(buf, " %*d,", min_width, arr[i]);
+        buf->fn_printf(buf, " %*d,", min_width, arr[i]);
     }
-    fn_tbl->fn_printf(buf, " %*d ]", min_width, arr[i]);
+    buf->fn_printf(buf, " %*d ]", min_width, arr[i]);
 }
 
 /* This example demonstrates how to overload the `k_printf` format specifier `%c`.
@@ -109,10 +107,8 @@ static void printf_callback_spec_c(struct k_printf_buf *buf, const struct k_prin
 
     /* Step 2: Output content to the buffer. */
 
-    struct k_printf_buf_fn_tbl *fn_tbl = buf->fn_tbl;
-
     if (repeat == 1) {
-        fn_tbl->fn_puts(buf, &ch, 1);
+        buf->fn_puts(buf, &ch, 1);
         return;
     }
 
@@ -120,7 +116,7 @@ static void printf_callback_spec_c(struct k_printf_buf *buf, const struct k_prin
 
     if (repeat <= sizeof(tmp_buf)) {
         memset(tmp_buf, ch, repeat);
-        fn_tbl->fn_puts(buf, tmp_buf, repeat);
+        buf->fn_puts(buf, tmp_buf, repeat);
         return;
     }
 
@@ -128,11 +124,11 @@ static void printf_callback_spec_c(struct k_printf_buf *buf, const struct k_prin
 
     int putc_num = 0;
     while (putc_num + sizeof(tmp_buf) <= repeat) {
-        fn_tbl->fn_puts(buf, tmp_buf, sizeof(tmp_buf));
+        buf->fn_puts(buf, tmp_buf, sizeof(tmp_buf));
         putc_num += sizeof(tmp_buf);
     }
     if (putc_num < repeat)
-        fn_tbl->fn_puts(buf, tmp_buf, repeat - putc_num);
+        buf->fn_puts(buf, tmp_buf, repeat - putc_num);
 }
 
 /* This example demonstrates how to match custom format specifiers:

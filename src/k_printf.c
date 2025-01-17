@@ -11,7 +11,7 @@
 
 /* `char []` 缓冲区
  *
- * 缓冲区中的字符串始终保持结尾处的值为 `\0`。
+ * 缓冲区中的字符串始终保持结尾处为 `\0`。
  * 若指定缓冲区内存段的长度不在 int 所能表达的正数范围内，则 `str_buf` 不会对外输出任何内容。
  */
 struct str_buf {
@@ -33,22 +33,19 @@ static void str_buf_puts   (struct k_printf_buf *buf, const char *str, size_t le
 static void str_buf_printf (struct k_printf_buf *buf, const char *fmt, ...);
 static void str_buf_vprintf(struct k_printf_buf *buf, const char *fmt, va_list args);
 
-static void init_file_buf   (struct file_buf *file_buf, FILE *file);
+static void init_file_buf   (struct file_buf *buf, FILE *file);
 static void file_buf_puts   (struct k_printf_buf *buf, const char *str, size_t len);
 static void file_buf_printf (struct k_printf_buf *buf, const char *fmt, ...);
 static void file_buf_vprintf(struct k_printf_buf *buf, const char *fmt, va_list args);
 
 static void init_str_buf(struct str_buf *str_buf, char *buf, size_t capacity) {
 
-    static struct k_printf_buf_fn_tbl str_buf_fn_tbl_impl = {
-        .fn_puts    = str_buf_puts,
-        .fn_printf  = str_buf_printf,
-        .fn_vprintf = str_buf_vprintf,
-    };
     static char buf_[1] = { '\0' };
 
-    str_buf->impl.fn_tbl = &str_buf_fn_tbl_impl;
-    str_buf->impl.n      = 0;
+    str_buf->impl.fn_puts    = str_buf_puts,
+    str_buf->impl.fn_printf  = str_buf_printf,
+    str_buf->impl.fn_vprintf = str_buf_vprintf,
+    str_buf->impl.n          = 0;
 
     if (0 < capacity && capacity <= INT_MAX) {
         str_buf->buffer  = buf;
@@ -128,17 +125,13 @@ static void str_buf_vprintf(struct k_printf_buf *buf, const char *fmt, va_list a
     }
 }
 
-static void init_file_buf(struct file_buf *file_buf, FILE *file) {
+static void init_file_buf(struct file_buf *buf, FILE *file) {
 
-    static struct k_printf_buf_fn_tbl file_buf_fn_tbl_impl = {
-        .fn_puts    = file_buf_puts,
-        .fn_printf  = file_buf_printf,
-        .fn_vprintf = file_buf_vprintf,
-    };
-
-    file_buf->impl.fn_tbl = &file_buf_fn_tbl_impl;
-    file_buf->impl.n      = 0;
-    file_buf->file        = file;
+    buf->impl.fn_puts    = file_buf_puts,
+    buf->impl.fn_printf  = file_buf_printf,
+    buf->impl.fn_vprintf = file_buf_vprintf,
+    buf->impl.n          = 0;
+    buf->file            = file;
 }
 
 static void file_buf_puts(struct k_printf_buf *buf, const char *str, size_t len) {
@@ -246,7 +239,7 @@ static void printf_callback_c_std_spec(struct k_printf_buf *buf, const struct k_
 
     va_list args_copy;
     va_copy(args_copy, *args);
-    buf->fn_tbl->fn_vprintf(buf, fmt, args_copy);
+    buf->fn_vprintf(buf, fmt, args_copy);
     va_end(args_copy);
 
     if (fmt != fmt_buf)
@@ -555,7 +548,7 @@ static int x_printf(const struct k_printf_config *config, struct k_printf_buf *b
             ++p;
 
         if (s < p)
-            buf->fn_tbl->fn_puts(buf, s, p - s);
+            buf->fn_puts(buf, s, p - s);
 
         if ('\0' == *p)
             break;
