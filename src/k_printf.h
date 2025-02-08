@@ -24,43 +24,44 @@ struct k_printf_spec;
 /**
  * \brief 自定义格式说明符的回调函数
  *
- * 在回调中，你应使用 `k_printf_buf` 提供的函数往缓冲区中写入内容。
- * 你不需要考虑缓冲区类型是 `char []` 还是 `FILE *`。
+ * 在回调中，`k_printf` 提供给你一个抽象的缓冲区接口 `k_printf_buf`，
+ * 你需要使用 `k_printf_buf` 提供的函数往缓冲区中写入内容，
+ * 不用考虑缓冲区类型是 `char []` 还是 `FILE *`。
  *
- * 在回调中，你可以通过 `spec` 查看当前格式说明符的详细信息。
- * 标准 C `printf` 支持使用 `+-#0 *.*` 中的一个或多个字符修饰转换行为（左右对齐、空格填充、精度控制等），
- * `spec` 会告诉你当前的格式说明符是否附带了这些修饰。
+ * C `printf` 支持使用 `+-#0 *.*` 修饰格式说明符的转换行为，`k_printf` 也支持。
+ * 在回调中，`k_printf` 会通过 `spec` 告诉你所识别到的格式说明符的详细信息。
  *
- * 你需要自行实现这些修饰符号对应的功能。你也可以重载这些符号的含义，
+ * 对于你自定义的格式说明符，你需要自行实现这些修饰符号对应的功能。你可以重载这些符号的含义，
  * 例如，你可以认为 `+` 表示详细输出，`-` 表示简要输出，这取决于你自己的实现。
- * 若你的格式说明符不需要支持这些修饰功能，那你多半可以忽略 `spec` 参数。
+ * 若你的格式说明符不需要支持这些修饰功能，那你多半可以忽略 `spec`。
  *
- * 在回调中，你应按需消耗变长参数列表中的实参。不要残留下应该由你来处理的实参，不要多消耗不属于你的实参，
- * 否则，后续的格式说明符会匹配到错误的实参，可能导致程序崩溃。
- *
- * 你应通过 `va_arg(*args, type)` 获取一个 type 类型的实参。
- * 注意回调中变长参数列表传递的是指针，因为 `k_printf` 需要知道执行完你在回调后消耗了多少实参。
- *
- * 你要留意 C 在传递变长参数时存在类型提升。例如 `char` 被提升为 `int`，
+ * 在回调中，`k_printf` 传递给你不定长参数列表的指针 `args`。
+ * 这里传递的是指针，因为 `k_printf` 需要知道执行完你在回调后消耗了多少实参。
+ * 你应通过 `va_arg(*args, type)` 从列表中获取一个 type 类型的实参。
+ * 
+ * 你要留意 C 在传递不定长参数时存在类型提升。例如 `char` 被提升为 `int`，
  * 若要读取一个 `char` 类型实参，应使用 `(char) va_arg(*args, int)`。
  *
- * \param buf  缓冲区，你应使用 `k_printf_buf->fn_tbl` 中提供的函数往缓冲区中写入内容
- * \param spec 当前格式说明符的详细信息
- * \param args 指向变长参数列表的指针，你应按需消耗列表中的实参
+ * 你应按需消耗实参。不要残留下应该由你来处理的实参，不要多消耗不属于你的实参，
+ * 否则，后续的格式说明符会匹配到错误的实参，可能导致程序崩溃。
+ *
+ * \param buf  缓冲区，你应使用 `k_printf_buf` 提供的函数往缓冲区中写入内容
+ * \param spec 提供当前格式说明符的详细信息
+ * \param args 指向不定长参数列表的指针，你应按需消耗列表中的实参
  */
 typedef void (*k_printf_callback_fn)(struct k_printf_buf *buf, const struct k_printf_spec *spec, va_list *args);
 
 /** \brief 缓冲区接口，对 `char []` 和 `FILE *` 两类缓冲区统一的操作接口 */
 struct k_printf_buf {
 
-    /** \brief 往缓冲区中写入指定长度的字符串（你要确保字符串在这段范围内的不含 `\0` 字符） */
-    void (* fn_puts)(struct k_printf_buf *buf, const char *str, size_t len);
+    /** \brief 往缓冲区中写入指定长度的字符串 */
+    void (*fn_puts)(struct k_printf_buf *buf, const char *str, size_t len);
 
-    /** \brief 往缓冲区中写入格式化的字符串（格式说明符的标准同 C `printf`） */
-    void (* fn_printf)(struct k_printf_buf *buf, const char *fmt, ...);
+    /** \brief 往缓冲区格式化写入格式化字符串（格式说明符同 C `printf`） */
+    void (*fn_printf)(struct k_printf_buf *buf, const char *fmt, ...);
 
-    /** \brief 往缓冲区中写入格式化的字符串（格式说明符的标准同 C `printf`） */
-    void (* fn_vprintf)(struct k_printf_buf *buf, const char *fmt, va_list args);
+    /** \brief 往缓冲区格式化写入格式化字符串（格式说明符同 C `printf`） */
+    void (*fn_vprintf)(struct k_printf_buf *buf, const char *fmt, va_list args);
 
     /**
      * \brief 到目前为止已经打印出的字符数量（忽略缓冲区实际大小）
@@ -71,8 +72,8 @@ struct k_printf_buf {
      *
      * `k_printf` 一族的函数也有相同的行为。
      *
-     * `n` 记录着到目前为止已打印出的字符数量（忽略缓冲区实际大小）。往缓冲区写入内容时会自动更新该值。
-     * `k_printf` 一族的函数返回值就是将字符串格式化完毕后的 `n` 的值。
+     * `n` 记录着到目前为止已打印出的字符数量（忽略缓冲区实际大小）。
+     * `k_printf` 一族的函数返回值，就是将字符串格式化完毕后 `n` 的值。
      *
      * 若想实现与 `printf` 的 `%n` 相似的功能，你需要在你的回调中读取 `n`。
      * 若读取到 `n` 为负值，说明输出途中出现错误。
@@ -162,10 +163,10 @@ struct k_printf_spec {
  * 但 `k_printf` 把 `[长度修饰符]转换指示符` 视为一个整体，称作格式说明符的 `类型`。
  * `k_printf` 认为 `%lld` 和 `%d` 是两种不同的类型。
  *
- * 假定你希望自定义的格式说明符 `%k`，则它的类型名是 `k`（不含 `%`）。
+ * 假定你自定义的格式说明符为 `%k`，则它的类型名是 `k`（不含 `%`）。
  * 若你没有定义 `%llk`，则 `%llk` 仍是未知的格式说明符。
- * 自定义的格式说明符类型名不能以 `%+-#0*` 中的任一个字符或是空格开头，其他字符都可以。
- * 你可以自定义格式指示符 `%{k}`，这比 `%k` 更显眼。
+ * 自定义格式说明符的类型名不能以 `%+-#0*` 中的任一个字符或是空格开头。
+ * 你可以自定义格式指示符为 `%{k}`，这比 `%k` 更显眼。
  *
  * 你可以重载 C `printf` 的格式说明符，但会失去所有修饰符的默认行为，
  * 不再支持左右对齐、零填充、精度等。若需要，你得自己再实现它们。
@@ -215,7 +216,7 @@ struct k_printf_spec_callback_tuple {
  * 若匹配成功，则移动字符串指针跳过该说明符，函数返回相应的回调；
  * 若匹配失败，函数返回 NULL，且不移动字符串指针。
  *
- * 传递的 `spec_configs` 应是一个 `k_printf_spec_callback_tuple` 数组，
+ * 传递的 `tuples` 应是一个 `k_printf_spec_callback_tuple` 数组，
  * 且要求数组最后一项是哨兵值 `{ NULL, NULL }`。建议将该数组定义为静态常量。
  *
  * 若你的格式说明符有前缀包含关系，请把长的格式说明符写在前面。
@@ -246,7 +247,7 @@ k_printf_callback_fn k_printf_match_spec_helper(const struct k_printf_spec_callb
  * \param get_s  返回动态分配的字符串的指针
  * \param fmt    格式字符串
  * \param ...    不定参数，根据格式字符串中的说明符，匹配要输出的值
- * \param args   变长参数列表
+ * \param args   不定长参数列表
  * \return 若成功，函数返回格式化后的字符串长度（忽略缓冲区的实际长度）；若失败，函数返回负值。
  *
  * @{

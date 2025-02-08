@@ -1,3 +1,6 @@
+
+/* I used ChatGPT to translate `src/k_printf.h` into this file. */
+
 #ifndef K_PRINTF_H
 #define K_PRINTF_H
 

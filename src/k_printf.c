@@ -7,58 +7,14 @@
 
 #include "k_printf.h"
 
-/* region [k_printf_buf_impl] */
+/* region [str buf] */
 
-/* `char []` 缓冲区
- *
- * 缓冲区中的字符串始终保持结尾处为 `\0`。
- * 若指定缓冲区内存段的长度不在 int 所能表达的正数范围内，则 `str_buf` 不会对外输出任何内容。
- */
 struct str_buf {
     struct k_printf_buf impl;
     char *buffer;
     int str_len;
     int max_len;
 };
-
-/* `FILE *` 缓冲区
- */
-struct file_buf {
-    struct k_printf_buf impl;
-    FILE *file;
-};
-
-static void init_str_buf   (struct str_buf *str_buf, char *buf, size_t capacity);
-static void str_buf_puts   (struct k_printf_buf *buf, const char *str, size_t len);
-static void str_buf_printf (struct k_printf_buf *buf, const char *fmt, ...);
-static void str_buf_vprintf(struct k_printf_buf *buf, const char *fmt, va_list args);
-
-static void init_file_buf   (struct file_buf *buf, FILE *file);
-static void file_buf_puts   (struct k_printf_buf *buf, const char *str, size_t len);
-static void file_buf_printf (struct k_printf_buf *buf, const char *fmt, ...);
-static void file_buf_vprintf(struct k_printf_buf *buf, const char *fmt, va_list args);
-
-static void init_str_buf(struct str_buf *str_buf, char *buf, size_t capacity) {
-
-    static char buf_[1] = { '\0' };
-
-    str_buf->impl.fn_puts    = str_buf_puts,
-    str_buf->impl.fn_printf  = str_buf_printf,
-    str_buf->impl.fn_vprintf = str_buf_vprintf,
-    str_buf->impl.n          = 0;
-
-    if (0 < capacity && capacity <= INT_MAX) {
-        str_buf->buffer  = buf;
-        str_buf->str_len = 0;
-        str_buf->max_len = (int)capacity - 1;
-    } else {
-        str_buf->buffer  = buf_;
-        str_buf->str_len = 0;
-        str_buf->max_len = 0;
-    }
-
-    str_buf->buffer[0] = '\0';
-}
 
 static void str_buf_puts(struct k_printf_buf *buf, const char *str, size_t len) {
     if (-1 == buf->n)
@@ -93,13 +49,6 @@ static void str_buf_puts(struct k_printf_buf *buf, const char *str, size_t len) 
     }
 }
 
-static void str_buf_printf(struct k_printf_buf *buf, const char *fmt, ...) {
-    va_list args;
-    va_start(args, fmt);
-    str_buf_vprintf(buf, fmt, args);
-    va_end(args);
-}
-
 static void str_buf_vprintf(struct k_printf_buf *buf, const char *fmt, va_list args) {
     if (-1 == buf->n)
         return;
@@ -125,14 +74,39 @@ static void str_buf_vprintf(struct k_printf_buf *buf, const char *fmt, va_list a
     }
 }
 
-static void init_file_buf(struct file_buf *buf, FILE *file) {
-
-    buf->impl.fn_puts    = file_buf_puts,
-    buf->impl.fn_printf  = file_buf_printf,
-    buf->impl.fn_vprintf = file_buf_vprintf,
-    buf->impl.n          = 0;
-    buf->file            = file;
+static void str_buf_printf(struct k_printf_buf *buf, const char *fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    str_buf_vprintf(buf, fmt, args);
+    va_end(args);
 }
+
+static void init_str_buf(struct str_buf *str_buf, char *buf, size_t capacity) {
+
+    static char buf_[1] = { '\0' };
+
+    str_buf->impl.fn_puts    = str_buf_puts,
+    str_buf->impl.fn_printf  = str_buf_printf,
+    str_buf->impl.fn_vprintf = str_buf_vprintf,
+    str_buf->impl.n          = 0;
+
+    if (1 < capacity && capacity <= INT_MAX) {
+        str_buf->buffer  = buf;
+        str_buf->str_len = 0;
+        str_buf->max_len = (int)capacity - 1;
+    } else {
+        str_buf->buffer  = buf_;
+        str_buf->str_len = 0;
+        str_buf->max_len = 0;
+    }
+
+    str_buf->buffer[0] = '\0';
+}
+
+struct file_buf {
+    struct k_printf_buf impl;
+    FILE *file;
+};
 
 static void file_buf_puts(struct k_printf_buf *buf, const char *str, size_t len) {
     if (-1 == buf->n)
@@ -149,13 +123,6 @@ static void file_buf_puts(struct k_printf_buf *buf, const char *str, size_t len)
     buf->n += (int)r;
     if (buf->n < 0)
         buf->n = -1;
-}
-
-static void file_buf_printf(struct k_printf_buf *buf, const char *fmt, ...) {
-    va_list args;
-    va_start(args, fmt);
-    file_buf_vprintf(buf, fmt, args);
-    va_end(args);
 }
 
 static void file_buf_vprintf(struct k_printf_buf *buf, const char *fmt, va_list args) {
@@ -175,13 +142,28 @@ static void file_buf_vprintf(struct k_printf_buf *buf, const char *fmt, va_list 
         buf->n = -1;
 }
 
+static void file_buf_printf(struct k_printf_buf *buf, const char *fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    file_buf_vprintf(buf, fmt, args);
+    va_end(args);
+}
+
+static void init_file_buf(struct file_buf *buf, FILE *file) {
+
+    buf->impl.fn_puts    = file_buf_puts,
+    buf->impl.fn_printf  = file_buf_printf,
+    buf->impl.fn_vprintf = file_buf_vprintf,
+    buf->impl.n          = 0;
+    buf->file            = file;
+}
+
 /* endregion */
 
 /* region [c_std_spec] */
 
-/* 处理 C `printf` 格式说明符的回调
+/* 处理 C `printf` 中 `%n` 一族的格式说明符
  *
- * 此函数专门处理 `%n` 一族的格式说明符。
  * 函数假定传入的格式说明符类型是正确的。
  */
 static void printf_callback_c_std_spec_n(struct k_printf_buf *buf, const struct k_printf_spec *spec, va_list *args) {
@@ -214,14 +196,13 @@ static void printf_callback_c_std_spec_n(struct k_printf_buf *buf, const struct 
     }
 }
 
-/* 处理 C `printf` 格式说明符的回调
+/* 处理 C `printf` 中除了 `%n` 一族以外所有的格式说明符
  *
- * 此函数处理 C `printf` 的格式说明符（除了 `%n` 一族）。
  * 函数假定传入的格式说明符类型是正确的。
  */
 static void printf_callback_c_std_spec(struct k_printf_buf *buf, const struct k_printf_spec *spec, va_list *args) {
 
-    /* 将格式说明符交回给 C `printf` 处理，之后按需消耗掉变长参数列表的实参 */
+    /* 将格式说明符交回给 C `printf` 处理，之后按需消耗掉不定长参数列表的实参 */
 
     char fmt_buf[80];
     char *fmt = fmt_buf;
@@ -439,10 +420,9 @@ k_printf_callback_fn k_printf_match_spec_helper(const struct k_printf_spec_callb
 
 /* region [x_printf] */
 
-/* 提取字符串开头的 int 值
+/* 提取字符串开头的非负 int 值（若超过上限则返回 INT_MAX），并移动字符串指针跳过数字
  *
- * 函数假定字符串开头存在非负的数值。
- * 函数提取该数值成 int 并返回，并移动字符串指针跳过数字（若超过上限则返回 INT_MAX）。
+ * 函数假定字符串开头存在非负的数字。
  */
 static int extract_non_negative_int(const char **str) {
 
@@ -535,9 +515,9 @@ static k_printf_callback_fn extract_spec(const struct k_printf_config *config, c
     return fn_callback;
 }
 
-/* 将格式化字符串写入到缓冲区，并返回格式化后的字符串长度
+/* 格式化写入字符串到缓冲区，并返回格式化后的字符串长度
  *
- * 本函数为 `k_printf` 模块所有函数的核心实现。
+ * 本函数为 `k_printf` 家族所有函数的核心实现。
  */
 static int x_printf(const struct k_printf_config *config, struct k_printf_buf *buf, const char *fmt, va_list args) {
 

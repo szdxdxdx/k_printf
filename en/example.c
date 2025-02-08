@@ -1,3 +1,6 @@
+
+/* I used ChatGPT to translate `src/example.c` into this file. */
+
 #include <stdarg.h>
 #include <stdlib.h>
 #include <stddef.h>
