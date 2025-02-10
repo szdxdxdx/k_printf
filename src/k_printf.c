@@ -7,7 +7,7 @@
 
 #include "k_printf.h"
 
-/* region [str buf] */
+/* region [str_buf] */
 
 struct str_buf {
     struct k_printf_buf impl;
@@ -102,6 +102,10 @@ static void init_str_buf(struct str_buf *str_buf, char *buf, size_t capacity) {
 
     str_buf->buffer[0] = '\0';
 }
+
+/* endregion */
+
+/* region [file_buf] */
 
 struct file_buf {
     struct k_printf_buf impl;
